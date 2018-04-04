@@ -4,7 +4,7 @@ from setuptools import setup, Extension
 
 
 def readme():
-    with io.open('README.rst', 'rb', encoding='utf8') as f:
+    with io.open('README.rst', 'rt', encoding='utf8') as f:
         return f.read()
 
 setup(
