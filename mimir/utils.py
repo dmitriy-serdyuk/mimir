@@ -3,6 +3,7 @@ import codecs
 import gzip
 import io
 import os
+import time
 from contextlib import contextmanager
 
 import zmq
@@ -67,8 +68,12 @@ class open_stream(object):
         Defaults to false.
 
     """
-    def __init__(self, filename, wait=0.5):
+    def __init__(self, filename, raw_text=False, wait=0.5, **kwargs):
         self.wait = wait
+        self.raw_text = raw_text
+        self.json_kwargs = kwargs
+
+        root, ext = os.path.splitext(filename)
         if ext == '.gz':
             self.f = codecs.getreader('utf-8')(gzip.open(filename))
         else:
@@ -86,7 +91,10 @@ class open_stream(object):
                     f.rewind()
                     f.seek(where)
                 else:
-                    yield loads(line)
+                    if self.raw_text:
+                        yield line
+                    else:
+                        yield loads(line, **self.json_kwargs)
         return read(self.f)
 
     def __enter__(self):
