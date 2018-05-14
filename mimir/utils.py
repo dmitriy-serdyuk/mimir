@@ -51,3 +51,46 @@ def open(filename, raw_text=False, **kwargs):
     else:
         with io.open(filename) as f:
             yield read(f)
+
+
+class open_stream(object):
+    """Generator over log entries loaded from a file. Waits for new entries.
+
+    Parameters
+    ----------
+    filename : str
+        The file to read. Assumed to be gzipped if it has extension
+        ``.gz``.
+    raw_text : bool, optional
+        If true then the generator returns the JSON strings, if false it
+        deserializes the JSON strings and returns Python objects instead.
+        Defaults to false.
+
+    """
+    def __init__(self, filename, wait=0.5):
+        self.wait = wait
+        if ext == '.gz':
+            self.f = codecs.getreader('utf-8')(gzip.open(filename))
+        else:
+            self.f = io.open(filename)
+
+    def __iter__(self):
+        def read(f):
+            while True:
+                where = f.tell()
+                line = f.readline()
+                if not line:
+                    time.sleep(self.wait)
+                    # We have to rewind, otherwise gzip searches for
+                    # a magic header
+                    f.rewind()
+                    f.seek(where)
+                else:
+                    yield loads(line)
+        return read(self.f)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.f.close()
